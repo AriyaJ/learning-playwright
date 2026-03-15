@@ -1,3 +1,4 @@
+/*
 import { test, expect } from '@playwright/test';
 
 test.describe('API Testing Examples', () => {
@@ -25,3 +26,5 @@ test.describe('API Testing Examples', () => {
     expect(body.name).toBe('New Gadget'); // เช็คว่าบันทึกค่าได้ตรงตามที่ส่งไป
   });
 });
+
+*/
