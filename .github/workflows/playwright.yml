@@ -27,3 +27,22 @@ jobs:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
+    - name: Send Email Notification
+      if: always()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.MAIL_USERNAME }}
+        password: ${{ secrets.MAIL_PASSWORD }}
+        subject: 🚀 Playwright Test Results - ${{ job.status }}
+        to: ariya.jen40@gmail.com
+        from: GitHub Actions Robot
+        body: |
+          รายงานผลการรัน Automation Test ล่าสุดครับ!
+          
+          สถานะ: ${{ job.status }}
+          ชื่อ Repository: ${{ github.repository }}
+          
+          เข้าไปดูรายละเอียดและ Report ได้ที่นี่:
+          https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
