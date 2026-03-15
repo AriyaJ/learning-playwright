@@ -46,3 +46,18 @@ jobs:
           
           เข้าไปดูรายละเอียดและ Report ได้ที่นี่:
           https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    - name: Send LINE Message
+      if: always()
+      run: |
+        curl -X POST https://api.line.me/v2/bot/message/push \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${{ secrets.LINE_ACCESS_TOKEN }}" \
+        -d '{
+          "to": "${{ secrets.LINE_USER_ID }}",
+          "messages": [
+            {
+              "type": "text",
+              "text": "🚀 Playwright Test Result: ${{ job.status }}\n\nRepository: ${{ github.repository }}\nView Report: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+          ]
+        }'
