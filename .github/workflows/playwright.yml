@@ -43,12 +43,12 @@
       - name: Upload Screenshot to Telegra.ph
         if: failure()
         id: upload_screenshot
-        continue-on-error: true # ✨ ถ้าฝากรูปไม่สำเร็จ ให้ทำ Step อื่นต่อ (สำคัญมาก)
+        continue-on-error: true # ✨ ถ้าฝากรูปไม่สำเร็จ ให้ทำ Step อื่นต่อ
         run: |
           RESPONSE=$(curl -s -F "file=@${{ steps.find_evidence.outputs.screenshot_path }}" https://telegra.ph/upload)
-          # แก้การแกะ JSON สำหรับ Array ของ Telegra.ph
+          # แก้ Syntax jq ให้แกะ Array ได้ถูกต้อง (ใช้ .[0].src)
           IMG_PATH=$(echo $RESPONSE | jq -r '.[0].src')
-          if [ "$IMG_PATH" != "null" ]; then
+          if [ "$IMG_PATH" != "null" ] && [ ! -z "$IMG_PATH" ]; then
             echo "image_url=https://telegra.ph$IMG_PATH" >> $GITHUB_OUTPUT
           fi
 
@@ -56,10 +56,10 @@
       - name: Upload Video
         if: failure()
         id: upload_video
-        continue-on-error: true # ✨ ถ้าเน็ตช้าจน Timeout ให้ข้ามไปส่งแค่รูป/ข้อความพอ
+        continue-on-error: true # ✨ ถ้าเน็ตเน่าจนอัปโหลดไม่ได้ ให้ข้ามไปส่ง LINE เลย
         run: |
           cp ${{ steps.find_evidence.outputs.video_path }} evidence_video.mp4
-          # เพิ่ม --connect-timeout เพื่อไม่ให้รันค้างนานเกินไป
+          # เพิ่ม --connect-timeout 30 วินาที ไม่ให้รันค้างนานเกินไป
           RESPONSE=$(curl -s --connect-timeout 30 -F "reqtype=fileupload" -F "fileToUpload=@evidence_video.mp4" https://catbox.moe/user/api.php)
           echo "video_url=$RESPONSE" >> $GITHUB_OUTPUT
 
@@ -98,13 +98,13 @@
           IMAGE_URL: ${{ steps.upload_screenshot.outputs.image_url }}
           VIDEO_URL: ${{ steps.upload_video.outputs.video_url }}
         run: |
-          # สร้างข้อความพื้นฐาน
+          # 1. รวมลิงก์ทั้งหมดไว้ในข้อความเดียว (ถ้าอันไหนอัปโหลดไม่สำเร็จ ลิงก์จะเป็นค่าว่าง)
           MSG="🔴 Playwright Test Failed!"
           [ ! -z "$IMAGE_URL" ] && MSG="$MSG\n📸 รูป: $IMAGE_URL"
           [ ! -z "$VIDEO_URL" ] && MSG="$MSG\n🎥 คลิป: $VIDEO_URL"
           MSG="$MSG\n🔗 Report: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          # ส่งข้อความตัวอักษรก่อน (อันนี้ต้องเด้งแน่ๆ)
+          # ส่งข้อความตัวอักษรก่อน (ก้อนนี้ต้องเด้งแน่ๆ เพราะไม่มีรูป/วิดีโอมาดึงให้พัง)
           curl -X POST https://api.line.me/v2/bot/message/push \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer $LINE_ACCESS_TOKEN" \
@@ -115,7 +115,7 @@
             ]
           }"
 
-          # ถ้ามีรูปภาพ ให้ส่งรูปแยกตามไป (ถ้าพังก็ไม่ดึงอันแรกตาย)
+          # 2. ถ้ามีรูปภาพสำเร็จ ให้ส่งรูปตามไปแยกอีก 1 ข้อความ (ถ้าพังก็ไม่ดึงก้อนแรกตาย)
           if [ ! -z "$IMAGE_URL" ] && [ "$IMAGE_URL" != "null" ]; then
             curl -X POST https://api.line.me/v2/bot/message/push \
             -H "Content-Type: application/json" \
@@ -123,7 +123,11 @@
             -d "{
               \"to\": \"$LINE_USER_ID\",
               \"messages\": [
-                { \"type\": \"image\", \"originalContentUrl\": \"$IMAGE_URL\", \"previewImageUrl\": \"$IMAGE_URL\" }
+                {
+                  \"type\": \"image\",
+                  \"originalContentUrl\": \"$IMAGE_URL\",
+                  \"previewImageUrl\": \"$IMAGE_URL\"
+                }
               ]
             }"
           fi
