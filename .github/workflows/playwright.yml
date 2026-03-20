@@ -101,7 +101,7 @@
             \"messages\": [
               {
                 \"type\": \"text\",
-                \"text\": \"🚀 Playwright Test Result: success\nView: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+                \"text\": \"🚀 Playwright Test Result: success\n\nView: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
               }
             ]
           }"
