@@ -39,17 +39,15 @@
           VIDEO_PATH=$(find test-results -name "*.webm" -o -name "*.mp4" | head -n 1)
           echo "video_path=$VIDEO_PATH" >> $GITHUB_OUTPUT
 
-      # ☁️ 2. ฝากรูปที่ Telegra.ph (แก้การใช้ jq ให้ถูก)
-      - name: Upload Screenshot to Telegra.ph
+    # ☁️ 2. เปลี่ยนมาใช้ Catbox สำหรับรูปด้วยเลย (ในเมื่อส่งวิดีโอผ่าน รูปก็ต้องผ่าน)
+      - name: Upload Screenshot to Catbox
         if: failure()
         id: upload_screenshot
-        continue-on-error: true # ✨ ถ้าฝากรูปไม่สำเร็จ ให้ทำ Step อื่นต่อ
+        continue-on-error: true 
         run: |
-          RESPONSE=$(curl -s -F "file=@${{ steps.find_evidence.outputs.screenshot_path }}" https://telegra.ph/upload)
-          # แก้ Syntax jq ให้แกะ Array ได้ถูกต้อง (ใช้ .[0].src)
-          IMG_PATH=$(echo $RESPONSE | jq -r '.[0].src')
-          if [ "$IMG_PATH" != "null" ] && [ ! -z "$IMG_PATH" ]; then
-            echo "image_url=https://telegra.ph$IMG_PATH" >> $GITHUB_OUTPUT
+          # Catbox ใช้ง่าย ไม่ต้องใช้ jq แกะ JSON เพราะมันคืนค่าเป็น Link ตรงๆ เลย
+          RESPONSE=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@${{ steps.find_evidence.outputs.screenshot_path }}" https://catbox.moe/user/api.php)
+          echo "image_url=$RESPONSE" >> $GITHUB_OUTPUT
           fi
 
       # ☁️ 3. ฝากวิดีโอ (เพิ่ม timeout และ continue-on-error)
