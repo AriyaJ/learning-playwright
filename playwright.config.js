@@ -33,7 +33,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: {
       mode: 'retain-on-failure',
-      size: { width: 640, height: 480 }, 
+      size: { width: 480, height: 360 }, // ลดขนาดลงจาก 640 เป็น 480
     },
     trace: 'on-first-retry',
   },

@@ -132,6 +132,9 @@
 
           # 3. ส่งวิดีโอแยกอีก 1 ข้อความ (เพราะตอนนี้เป็น .mp4 แล้ว LINE จะยอมเล่นให้)
           if [ ! -z "$VIDEO_URL" ] && [ "$VIDEO_URL" != "null" ]; then
+            # เพิ่มการหน่วงเวลา 2 วินาทีเพื่อให้ Server ฝั่ง Catbox ประมวลผลไฟล์เสร็จก่อน LINE ไปดึง
+            sleep 2
+            
             curl -X POST https://api.line.me/v2/bot/message/push \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $LINE_ACCESS_TOKEN" \
