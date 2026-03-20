@@ -10,7 +10,7 @@ test('เช็คหน้าแรก Swag', async ({ page }) => {
 
    // 3. login ระบบแล้วยืนยัน login แล้ว
   await page.getByRole('textbox',{name : 'Username'}).fill('standard_user')
-  //await page.getByRole('textbox',{name : 'Password'}).fill('secret_sauce')
+  await page.getByRole('textbox',{name : 'Password'}).fill('secret_sauce')
   await page.getByRole('button', {name : 'login' }).click()  
   await expect(page.getByText('Products')).toBeVisible()
   
