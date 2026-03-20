@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: Playwright Tests with Docker
 on:
   push:
     branches: [ main, master ]
@@ -7,27 +7,35 @@ on:
   schedule:
     - cron: '0 1 * * *' # ตื่นมาเทสตอน 8 โมงเช้าไทยทุกวัน
   workflow_dispatch:
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    
+    # 🔴 จุดที่เพิ่ม 1: สั่งให้รันงานทั้งหมดใน Container ของ Playwright โดยตรง
+    container:
+      image: mcr.microsoft.com/playwright:v1.45.0-jammy
+
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
+
+    # 🔴 จุดที่ตัดออก: ไม่ต้องใช้ actions/setup-node@v4 แล้ว เพราะใน Docker มี Node มาให้แล้ว
+    # 🔴 จุดที่ตัดออก: ไม่ต้องใช้ npx playwright install --with-deps เพราะใน Docker มีเบราว์เซอร์ครบแล้ว
+
     - name: Install dependencies
       run: npm install
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+
     - name: Run Playwright tests
       run: npx playwright test
+
     - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
+
     - name: Send Email Notification
       if: always()
       uses: dawidd6/action-send-mail@v3
@@ -41,24 +49,22 @@ jobs:
         from: GitHub Actions Robot
         body: |
           รายงานผลการรัน Automation Test ล่าสุดครับ!
-          
           สถานะ: ${{ job.status }}
-          ชื่อ Repository: ${{ github.repository }}
-          
-          เข้าไปดูรายละเอียดและ Report ได้ที่นี่:
-          https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          View Report: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
     - name: Send LINE Message
       if: always()
       run: |
         curl -X POST https://api.line.me/v2/bot/message/push \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${{ secrets.LINE_ACCESS_TOKEN }}" \
+        -H "X-Line-Retry-Key: ${{ github.run_id }}" \
         -d '{
           "to": "${{ secrets.LINE_USER_ID }}",
           "messages": [
             {
               "type": "text",
-              "text": "🚀 Playwright Test Result: ${{ job.status }}\n\nRepository: ${{ github.repository }}\nView Report: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": "🚀 Playwright Test Result: ${{ job.status }}\n\nView Report: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
           ]
         }'
