@@ -40,22 +40,25 @@
           echo "video_path=$VIDEO_PATH" >> $GITHUB_OUTPUT
 
       # ☁️ 2. ต้องเพิ่ม Step นี้: เพื่อเอารูปที่หาเจอ อัปโหลดขึ้นเว็บ imghippo
-      - name: Upload Screenshot to Imghippo
+      - name: Upload Screenshot to file.io
         if: failure() && steps.find_evidence.outputs.screenshot_path != ''
         id: upload_screenshot
         run: |
-          RESPONSE=$(curl -s -X POST -F "file=@${{ steps.find_evidence.outputs.screenshot_path }}" https://api.imghippo.com/v1/upload)
-          echo "Imghippo Response: $RESPONSE" 
-          IMAGE_URL=$(echo $RESPONSE | jq -r '.data.url')
+          # file.io จะลบรูปทิ้งหลังมีคนเปิดดู 1 ครั้ง หรือผ่านไป 1 วัน (เหมาะกับงาน QA)
+          RESPONSE=$(curl -s -F "file=@${{ steps.find_evidence.outputs.screenshot_path }}" https://file.io)
+          IMAGE_URL=$(echo $RESPONSE | jq -r '.link')
           echo "image_url=$IMAGE_URL" >> $GITHUB_OUTPUT
 
-      # ☁️ 3. ต้องเพิ่ม Step นี้: เพื่อเอาวิดีโออัปโหลดขึ้นเว็บ catbox
-      - name: Upload Video to Catbox
-        if: failure() && steps.find_evidence.outputs.video_path != ''
+      # ☁️ 3. ฝากวิดีโอที่ catbox (หลอกให้เป็น .mp4)
+      - name: Upload Video
+        if: failure()
         id: upload_video
         run: |
-          RESPONSE=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@${{ steps.find_evidence.outputs.video_path }}" https://catbox.moe/user/api.php)
-          echo "Catbox Video URL: $RESPONSE"
+          # ✨ จุดสำคัญ: ก๊อปปี้ไฟล์ .webm เดิม แล้วเปลี่ยนชื่อให้เป็น .mp4 ก่อนอัปโหลด
+          cp ${{ steps.find_evidence.outputs.video_path }} evidence_video.mp4
+        
+          # ส่งไฟล์ที่เปลี่ยนชื่อแล้วไปที่ catbox
+          RESPONSE=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@evidence_video.mp4" https://catbox.moe/user/api.php)
           echo "video_url=$RESPONSE" >> $GITHUB_OUTPUT
 
       # 📦 เก็บ Artifact เหมือนเดิม
@@ -97,7 +100,7 @@
           -d "{\"to\": \"$LINE_USER_ID\", \"messages\": [{\"type\": \"text\", \"text\": \"🚀 Playwright SUCCESS!\"}]}"
 
       # 🔴 ส่ง LINE (กรณีรันพัง - ส่งรูป + คลิป)
-      - name: Send LINE Message with Evidence (Failure)
+      - name: Send LINE Video
         if: failure()
         env:
           LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
@@ -105,27 +108,23 @@
           IMAGE_URL: ${{ steps.upload_screenshot.outputs.image_url }}
           VIDEO_URL: ${{ steps.upload_video.outputs.video_url }}
         run: |
-          # แยกส่งเป็น 2 ชุดเพื่อความชัวร์ (ถ้าคลิปพัง รูปยังต้องเด้ง)
-          # 1. ส่งข้อความ + รูป
-          curl -X POST https://api.line.me/v2/bot/message/push \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer $LINE_ACCESS_TOKEN" \
-          -d "{
-            \"to\": \"$LINE_USER_ID\",
-            \"messages\": [
-              { \"type\": \"text\", \"text\": \"🔴 Test Failed! ดูหลักฐานด้านล่าง\" },
-              { \"type\": \"image\", \"originalContentUrl\": \"$IMAGE_URL\", \"previewImageUrl\": \"$IMAGE_URL\" }
-            ]
-          }"
-          # 2. ส่งวิดีโอ (ถ้ามี)
-          if [ ! -z "$VIDEO_URL" ] && [ "$VIDEO_URL" != "null" ]; then
+          # ตรวจสอบว่าถ้า IMAGE_URL หรือ VIDEO_URL เป็น null จะไม่ส่งเพื่อป้องกัน Error
+          if [ "$IMAGE_URL" != "null" ] && [ "$VIDEO_URL" != "null" ]; then
             curl -X POST https://api.line.me/v2/bot/message/push \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $LINE_ACCESS_TOKEN" \
             -d "{
               \"to\": \"$LINE_USER_ID\",
               \"messages\": [
-                { \"type\": \"video\", \"originalContentUrl\": \"$VIDEO_URL\", \"previewImageUrl\": \"$IMAGE_URL\" }
+                {
+                  \"type\": \"text\",
+                  \"text\": \"🔴 พบจุดพัง! ดูวิดีโอด้านล่างได้เลยครับ\nLink: $VIDEO_URL\"
+                },
+                {
+                  \"type\": \"video\",
+                  \"originalContentUrl\": \"$VIDEO_URL\",
+                  \"previewImageUrl\": \"$IMAGE_URL\"
+                }
               ]
             }"
           fi
