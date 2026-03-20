@@ -129,3 +129,20 @@
               ]
             }"
           fi
+
+          # 3. ส่งวิดีโอแยกอีก 1 ข้อความ (เพราะตอนนี้เป็น .mp4 แล้ว LINE จะยอมเล่นให้)
+          if [ ! -z "$VIDEO_URL" ] && [ "$VIDEO_URL" != "null" ]; then
+            curl -X POST https://api.line.me/v2/bot/message/push \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $LINE_ACCESS_TOKEN" \
+            -d "{
+              \"to\": \"$LINE_USER_ID\",
+              \"messages\": [
+                {
+                  \"type\": \"video\",
+                  \"originalContentUrl\": \"$VIDEO_URL\",
+                  \"previewImageUrl\": \"$IMAGE_URL\"
+                }
+              ]
+            }"
+          fi
