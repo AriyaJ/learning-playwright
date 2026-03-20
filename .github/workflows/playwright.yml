@@ -108,8 +108,8 @@
           IMAGE_URL: ${{ steps.upload_screenshot.outputs.image_url }}
           VIDEO_URL: ${{ steps.upload_video.outputs.video_url }}
         run: |
-          # ตรวจสอบว่าถ้า IMAGE_URL หรือ VIDEO_URL เป็น null จะไม่ส่งเพื่อป้องกัน Error
-          if [ "$IMAGE_URL" != "null" ] && [ "$VIDEO_URL" != "null" ]; then
+          # เช็คให้แน่ใจว่าได้ URL มาจริงก่อนส่ง
+          if [ "$IMAGE_URL" != "null" ] && [ ! -z "$IMAGE_URL" ]; then
             curl -X POST https://api.line.me/v2/bot/message/push \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $LINE_ACCESS_TOKEN" \
