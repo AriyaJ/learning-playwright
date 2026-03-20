@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [ main, master ]
   schedule:
-    - cron: '0 1 * * *' # ตื่นมาเทสตอน 8 โมงเช้าไทยทุกวัน
+    - cron: '30 0 * * *' # ตื่นมาเทสตอน 7.30 โมงเช้าไทยทุกวัน
   workflow_dispatch:
 
 jobs:
@@ -44,17 +44,24 @@ jobs:
         server_port: 465
         username: ${{ secrets.MAIL_USERNAME }}
         password: ${{ secrets.MAIL_PASSWORD }}
-        subject: 🚀 Playwright Test Results - ${{ job.status }}
+        # หัวข้อเมลจะเปลี่ยนตามสถานะ (Success/Failure)
+        subject: ${{ job.status == 'success' && '🚀' || '🔴' }} Playwright Test Results - ${{ job.status }}
         to: ariya.jen40@gmail.com
         from: GitHub Actions Robot
         body: |
           รายงานผลการรัน Automation Test ล่าสุดครับ!
+          
           สถานะ: ${{ job.status }}
-          View Report: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ชื่อ Repository: ${{ github.repository }}
+          
+          ${{ job.status == 'failure' && '⚠️ ตรวจพบข้อผิดพลาด: สามารถเข้าไปดูรูป Screenshot และคลิปวิดีโอหลักฐานได้ใน LINE นะครับ' || '✅ การทดสอบผ่านเรียบร้อยดีครับ' }}
+          
+          เข้าไปดูรายละเอียดและ Report เต็มๆ ได้ที่นี่:
+          https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-    - name: Send LINE Message
-      if: always()
-      # เพิ่ม env ตรงนี้เพื่อให้แน่ใจว่า Docker ดึงค่า Secrets มาใช้ได้
+    # 🟢 1. กรณีเทส "ผ่าน" (Success) -> ส่งจรวดลำเดิม
+    - name: Send LINE Message (Success)
+      if: success()
       env:
         LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
         LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
@@ -67,7 +74,39 @@ jobs:
           \"messages\": [
             {
               \"type\": \"text\",
-              \"text\": \"🚀 Playwright Test Result: ${{ job.status }}\n\nView Report: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+              \"text\": \"🚀 Playwright Test Result: SUCCESS\n\nทุกอย่างเขียวอี๋! รันผ่านฉลุยครับ\nView: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }
+          ]
+        }"
+
+    # 🔴 2. กรณีเทส "พัง" (Failure) -> ส่งรูป + คลิป (ตามโค้ดใหม่)
+    - name: Send LINE Message with Evidence (Failure)
+      if: failure()
+      env:
+        LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
+        LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        IMAGE_URL: ${{ steps.upload_screenshot.outputs.image_url }}
+        VIDEO_URL: ${{ steps.upload_video.outputs.video_url }}
+      run: |
+        curl -X POST https://api.line.me/v2/bot/message/push \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $LINE_ACCESS_TOKEN" \
+        -d "{
+          \"to\": \"$LINE_USER_ID\",
+          \"messages\": [
+            {
+              \"type\": \"text\",
+              \"text\": \"🔴 Playwright Test Result: FAILED\n\nเจอจุดพังครับ! ดูรูปและคลิปด้านล่างได้เลย\"
+            },
+            {
+              \"type\": \"image\",
+              \"originalContentUrl\": \"$IMAGE_URL\",
+              \"previewImageUrl\": \"$IMAGE_URL\"
+            },
+            {
+              \"type\": \"video\",
+              \"originalContentUrl\": \"$VIDEO_URL\",
+              \"previewImageUrl\": \"$IMAGE_URL\"
             }
           ]
         }"

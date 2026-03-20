@@ -1,5 +1,5 @@
 # 1. ใช้ Image พื้นฐานที่มี Playwright และเบราว์เซอร์ติดตั้งมาแล้ว
-FROM mcr.microsoft.com/playwright:v1.45.0-jammy
+FROM mcr.microsoft.com/playwright:v1.58.2-jammy
 
 # 2. สร้างโฟลเดอร์สำหรับทำงานในตัว Docker
 WORKDIR /app
