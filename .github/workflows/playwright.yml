@@ -74,7 +74,7 @@ jobs:
           \"messages\": [
             {
               \"type\": \"text\",
-              \"text\": \"🚀 Playwright Test Result: SUCCESS\n\nทุกอย่างเขียวอี๋! รันผ่านฉลุยครับ\nView: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+              \"text\": \"🚀 Playwright Test Result: success\nView: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
             }
           ]
         }"
@@ -96,7 +96,7 @@ jobs:
           \"messages\": [
             {
               \"type\": \"text\",
-              \"text\": \"🔴 Playwright Test Result: FAILED\n\nเจอจุดพังครับ! ดูรูปและคลิปด้านล่างได้เลย\"
+              \"text\": \"🔴 Playwright Test Result: Failed\nเจอจุดพังครับ! ดูรูปและคลิปด้านล่างได้เลย\"
             },
             {
               \"type\": \"image\",
