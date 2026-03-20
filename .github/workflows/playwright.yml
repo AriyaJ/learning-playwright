@@ -86,8 +86,28 @@
             สถานะ: ${{ job.status }}
             ${{ job.status == 'failure' && '⚠️ ตรวจพบข้อผิดพลาด: ดูรูปและคลิปหลักฐานได้ใน LINE นะครับ' || '✅ ผ่านเรียบร้อยดีครับ' }}
             Link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+   # 🟢 กรณีเทส "ผ่าน" (Success) -> ส่งจรวดลำเดิม
+      - name: Send LINE Message (Success)
+        if: success()
+        env:
+          LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: |
+          curl -X POST https://api.line.me/v2/bot/message/push \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $LINE_ACCESS_TOKEN" \
+          -d "{
+            \"to\": \"$LINE_USER_ID\",
+            \"messages\": [
+              {
+                \"type\": \"text\",
+                \"text\": \"🚀 Playwright Test Result: success\nView: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+              }
+            ]
+          }"
 
-    # 🔴 ส่ง LINE (แยกส่วนส่ง เพื่อความชัวร์)
+
+    # 🔴 ส่ง LINE ตอนพัง (แยกส่วนส่ง เพื่อความชัวร์)
       - name: Send LINE Notification
         if: failure()
         env:
